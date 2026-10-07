@@ -1,6 +1,6 @@
 # Note format
 
-A note as stored (`.ui-feedback/<id>.json`, `GET <endpoint>?notes`, `.ui-feedback-inbox/notes.json`):
+A note as stored (`.pointfix/<id>.json`, `GET <endpoint>?notes`, `.pointfix-inbox/notes.json`):
 
 ```json
 {
@@ -48,6 +48,6 @@ A note as stored (`.ui-feedback/<id>.json`, `GET <endpoint>?notes`, `.ui-feedbac
 | `elements[].layer` | 0 = topmost element under the pointer; higher = the owner went down through overlapping layers. |
 | `hasImage` | The screenshot is `<id>.png` next to the JSON, or `GET <endpoint>?image=<id>`. It includes the numbered boxes and the owner's marks. |
 | `status` | `open` or `resolved`. |
-| `reply` / `repliedAt` | Your answer (`scripts/ui-feedback.mjs reply`). Shown on the notes page. |
+| `reply` / `repliedAt` | Your answer (`scripts/pointfix.mjs reply`). Shown on the notes page. |
 
 The endpoint validates and caps everything it receives (strings, lists, image size and PNG signature); unknown fields are dropped.

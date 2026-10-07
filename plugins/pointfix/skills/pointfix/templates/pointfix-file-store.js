@@ -1,30 +1,30 @@
 // @ts-check
 /**
- * ui-feedback — file store (Node.js). Keeps each note as `<id>.json` (and its screenshot as `<id>.png`) in a
- * folder, `.ui-feedback/` at the project root by default. Add that folder to .gitignore.
+ * pointfix — file store (Node.js). Keeps each note as `<id>.json` (and its screenshot as `<id>.png`) in a
+ * folder, `.pointfix/` at the project root by default. Add that folder to .gitignore.
  *
  * Good for local development and for a single server with a persistent disk (a VPS, a Docker volume).
  * On serverless hosts the disk is temporary: write a store for your database or object storage instead
- * (see the FeedbackStore type in ui-feedback-server.js).
+ * (see the FeedbackStore type in pointfix-server.js).
  *
  * The "turbopackIgnore" comments tell Next.js not to bundle the whole project because of these dynamic paths.
  */
 import { promises as fs } from "node:fs";
 import path from "node:path";
 
-/** @typedef {import("./ui-feedback-server.js").Note} Note */
-/** @typedef {import("./ui-feedback-server.js").NoteStatus} NoteStatus */
-/** @typedef {import("./ui-feedback-server.js").FeedbackStore} FeedbackStore */
+/** @typedef {import("./pointfix-server.js").Note} Note */
+/** @typedef {import("./pointfix-server.js").NoteStatus} NoteStatus */
+/** @typedef {import("./pointfix-server.js").FeedbackStore} FeedbackStore */
 
 const ID_PATTERN = /^[a-z0-9-]{4,64}$/;
 
 /**
  * @param {{ dir?: string }} [options]  `dir`: absolute or relative to the working directory. Default
- *   `process.env.UI_FEEDBACK_DIR` or `.ui-feedback`.
+ *   `process.env.POINTFIX_DIR` or `.pointfix`.
  * @returns {FeedbackStore}
  */
 export function createFileStore(options = {}) {
-  const dir = path.resolve(/* turbopackIgnore: true */ options.dir ?? process.env.UI_FEEDBACK_DIR ?? ".ui-feedback");
+  const dir = path.resolve(/* turbopackIgnore: true */ options.dir ?? process.env.POINTFIX_DIR ?? ".pointfix");
 
   /** @param {string} id @param {"json" | "png"} ext */
   const file = (id, ext) => {

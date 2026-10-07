@@ -1,8 +1,8 @@
 {
-  "name": "ui-feedback",
+  "name": "pointfix",
   "version": "0.1.0",
   "private": true,
-  "description": "Point-and-click UI feedback for web projects, reviewed and applied by Claude Code.",
+  "description": "PointFix: point-and-click UI feedback for web projects, reviewed and applied by Claude Code.",
   "type": "module",
   "license": "MIT",
   "scripts": {

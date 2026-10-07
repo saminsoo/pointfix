@@ -1,28 +1,28 @@
 #!/usr/bin/env node
 // @ts-check
 /**
- * ui-feedback CLI — read the notes left with the feedback button, answer them and mark them as resolved.
- * No dependencies (Node 18+). Copy it into your project (scripts/ui-feedback.mjs) or run it from the skill.
+ * pointfix CLI — read the notes left with the feedback button, answer them and mark them as resolved.
+ * No dependencies (Node 18+). Copy it into your project (scripts/pointfix.mjs) or run it from the skill.
  *
- *   node scripts/ui-feedback.mjs pull [--status open|resolved|all]   list notes (downloads screenshots if remote)
- *   node scripts/ui-feedback.mjs show <id>                            one note in detail
- *   node scripts/ui-feedback.mjs reply <id> "<text>" [--keep-open]    save Claude's reply and resolve the note
- *   node scripts/ui-feedback.mjs resolve <id> [<id>...]               mark as resolved without a reply
- *   node scripts/ui-feedback.mjs reopen <id> [<id>...]
- *   node scripts/ui-feedback.mjs key                                  generate a secret for UI_FEEDBACK_KEY
+ *   node scripts/pointfix.mjs pull [--status open|resolved|all]   list notes (downloads screenshots if remote)
+ *   node scripts/pointfix.mjs show <id>                            one note in detail
+ *   node scripts/pointfix.mjs reply <id> "<text>" [--keep-open]    save Claude's reply and resolve the note
+ *   node scripts/pointfix.mjs resolve <id> [<id>...]               mark as resolved without a reply
+ *   node scripts/pointfix.mjs reopen <id> [<id>...]
+ *   node scripts/pointfix.mjs key                                  generate a secret for POINTFIX_KEY
  *
  * Where the notes are:
- *   - Remote (a deployed site): set UI_FEEDBACK_URL (the endpoint, e.g. https://staging.example.com/api/ui-feedback)
- *     and UI_FEEDBACK_KEY — as environment variables, in .env.local / .env, or with --url / --key.
- *     Screenshots are downloaded to .ui-feedback-inbox/.
- *   - Local (your dev server writes files): without UI_FEEDBACK_URL, notes are read from .ui-feedback/
- *     (or UI_FEEDBACK_DIR, or --dir). Use --local to force this mode.
+ *   - Remote (a deployed site): set POINTFIX_URL (the endpoint, e.g. https://staging.example.com/api/pointfix)
+ *     and POINTFIX_KEY — as environment variables, in .env.local / .env, or with --url / --key.
+ *     Screenshots are downloaded to .pointfix-inbox/.
+ *   - Local (your dev server writes files): without POINTFIX_URL, notes are read from .pointfix/
+ *     (or POINTFIX_DIR, or --dir). Use --local to force this mode.
  */
 import { promises as fs, readFileSync } from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
 
-const INBOX = ".ui-feedback-inbox";
+const INBOX = ".pointfix-inbox";
 const ID_PATTERN = /^[a-z0-9-]{4,64}$/;
 
 /** @typedef {{ id: string, createdAt: string, pageUrl: string, pageTitle?: string, comment: string, devices: string[], viewport: { width: number, height: number }, elements: any[], hasImage: boolean, status: "open" | "resolved", reply: string | null, repliedAt: string | null, resolvedAt: string | null }} Note */
@@ -37,7 +37,7 @@ function loadEnvFiles() {
       continue;
     }
     for (const line of text.split(/\r?\n/)) {
-      const m = /^\s*(?:export\s+)?(UI_FEEDBACK_[A-Z_]+)\s*=\s*(.*)\s*$/.exec(line);
+      const m = /^\s*(?:export\s+)?(POINTFIX_[A-Z_]+)\s*=\s*(.*)\s*$/.exec(line);
       if (!m || process.env[m[1]] !== undefined) continue;
       let value = m[2].trim();
       if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) value = value.slice(1, -1);
@@ -66,26 +66,26 @@ function parseArgs(argv) {
 
 /** @param {string} message @returns {never} */
 function fail(message) {
-  console.error(`ui-feedback: ${message}`);
+  console.error(`pointfix: ${message}`);
   process.exit(1);
 }
 
 /** @param {Record<string, string | boolean>} flags */
 function source(flags) {
-  const url = typeof flags.url === "string" ? flags.url : process.env.UI_FEEDBACK_URL;
+  const url = typeof flags.url === "string" ? flags.url : process.env.POINTFIX_URL;
   if (url && !flags.local) {
-    const key = typeof flags.key === "string" ? flags.key : process.env.UI_FEEDBACK_KEY;
-    if (!key) fail("UI_FEEDBACK_URL is set but UI_FEEDBACK_KEY is missing (needed to read notes from the site).");
+    const key = typeof flags.key === "string" ? flags.key : process.env.POINTFIX_KEY;
+    if (!key) fail("POINTFIX_URL is set but POINTFIX_KEY is missing (needed to read notes from the site).");
     return /** @type {const} */ ({ kind: "remote", url: url.replace(/\/+$/, ""), key: /** @type {string} */ (key) });
   }
-  const dir = path.resolve(typeof flags.dir === "string" ? flags.dir : process.env.UI_FEEDBACK_DIR ?? ".ui-feedback");
+  const dir = path.resolve(typeof flags.dir === "string" ? flags.dir : process.env.POINTFIX_DIR ?? ".pointfix");
   return /** @type {const} */ ({ kind: "local", dir });
 }
 
 /** @param {{ url: string, key: string }} remote @param {string} query @param {RequestInit} [init] */
 async function call(remote, query, init = {}) {
   const res = await fetch(`${remote.url}${query}`, { ...init, headers: { Authorization: `Bearer ${remote.key}`, ...(init.headers ?? {}) } });
-  if (res.status === 404) fail(`404 from ${remote.url} — check UI_FEEDBACK_URL and UI_FEEDBACK_KEY (the key must match the site's).`);
+  if (res.status === 404) fail(`404 from ${remote.url} — check POINTFIX_URL and POINTFIX_KEY (the key must match the site's).`);
   if (!res.ok) fail(`${res.status} from ${remote.url}: ${await res.text()}`);
   return res;
 }
@@ -196,8 +196,8 @@ async function main() {
   if (command === "key") {
     const key = crypto.randomBytes(32).toString("base64url");
     console.log(key);
-    console.error("\nPut it in the server's environment as UI_FEEDBACK_KEY (and in your local .env.local for this script).");
-    console.error("Then open <your site>/api/ui-feedback?enable=<key> once in your browser to see the button there.");
+    console.error("\nPut it in the server's environment as POINTFIX_KEY (and in your local .env.local for this script).");
+    console.error("Then open <your site>/api/pointfix?enable=<key> once in your browser to see the button there.");
     return;
   }
 
@@ -212,11 +212,11 @@ async function main() {
       console.log(JSON.stringify(notes, null, 2));
       return;
     }
-    console.log(`# UI feedback — ${notes.length} ${status === "all" ? "" : `${status} `}note${notes.length === 1 ? "" : "s"} (${where})\n`);
+    console.log(`# PointFix — ${notes.length} ${status === "all" ? "" : `${status} `}note${notes.length === 1 ? "" : "s"} (${where})\n`);
     notes.forEach((n, i) => console.log(`${describe(n, i + 1, imageDir)}\n`));
     if (notes.length) {
       console.log("Next: read each screenshot, make the change, then:");
-      console.log('  node scripts/ui-feedback.mjs reply <id> "Understood: ... Done: ..."');
+      console.log('  node scripts/pointfix.mjs reply <id> "Understood: ... Done: ..."');
     }
     return;
   }

@@ -1,18 +1,18 @@
 // @ts-check
 /**
- * ui-feedback — browser widget.
+ * pointfix — browser widget.
  *
  * A floating button for the site owner: pick elements on the page layer by layer (like the browser's
  * inspector), capture the screen with them numbered, draw on it, choose the screens the change is for
- * (desktop / tablet / mobile) and leave a comment. Notes go to the ui-feedback endpoint; Claude reads
- * them with scripts/ui-feedback.mjs, applies the changes and replies on each note.
+ * (desktop / tablet / mobile) and leave a comment. Notes go to the pointfix endpoint; Claude reads
+ * them with scripts/pointfix.mjs, applies the changes and replies on each note.
  *
  * Plain JavaScript, no framework and no dependencies. Everything renders inside a Shadow DOM, so the page's
  * CSS can't break it and its CSS can't leak into the page. Works in React, Next.js, Vue, Svelte, Angular
  * and plain HTML.
  *
- *   import { mountUiFeedback } from "./ui-feedback-widget.js";
- *   mountUiFeedback({ loadHtml2Canvas: () => import("html2canvas-pro") });
+ *   import { mountPointFix } from "./pointfix-widget.js";
+ *   mountPointFix({ loadHtml2Canvas: () => import("html2canvas-pro") });
  *
  * The button only appears when the server says so (development, or a browser that opened the activation
  * link). Customers never see it.
@@ -22,8 +22,8 @@
 /** @typedef {"en" | "es"} Locale */
 
 /**
- * @typedef {object} UiFeedbackOptions
- * @property {string} [endpoint]  The server endpoint. Default "/api/ui-feedback".
+ * @typedef {object} PointFixOptions
+ * @property {string} [endpoint]  The server endpoint. Default "/api/pointfix".
  * @property {Locale} [locale]  Default: from <html lang>, else the browser language.
  * @property {"bottom-left" | "bottom-right"} [position]  Where the round button sits. Default "bottom-left".
  * @property {string} [bottomOffset]  CSS length from the bottom, e.g. "calc(var(--bottom-bar-h) + 16px)". Default "16px".
@@ -95,7 +95,7 @@ const STRINGS = {
     sendAnyway: "Send anyway",
     send: "Send note",
     sending: "Sending…",
-    sent: "Note sent. Ask Claude to “review the UI feedback”.",
+    sent: "Note sent. Ask Claude to “review the PointFix notes”.",
     sendError: "The note couldn't be sent.",
     timeout: "The server took too long. Try again.",
     network: "Couldn't connect. Try again.",
@@ -795,15 +795,15 @@ function timeoutSignal(/** @type {number} */ ms) {
 
 /**
  * Shows the feedback button (if the server allows it for this browser).
- * @param {UiFeedbackOptions} [options]
+ * @param {PointFixOptions} [options]
  * @returns {Promise<{ unmount: () => void }>}
  */
-export async function mountUiFeedback(options = {}) {
+export async function mountPointFix(options = {}) {
   const noop = { unmount() {} };
   if (typeof window === "undefined" || typeof document === "undefined") return noop;
   const lang = (options.locale ?? document.documentElement.lang ?? navigator.language ?? "en").toLowerCase();
   const opts = {
-    endpoint: options.endpoint ?? "/api/ui-feedback",
+    endpoint: options.endpoint ?? "/api/pointfix",
     locale: /** @type {Locale} */ (lang.startsWith("es") ? "es" : "en"),
     position: options.position ?? "bottom-left",
     bottomOffset: options.bottomOffset ?? "16px",
@@ -831,7 +831,7 @@ export async function mountUiFeedback(options = {}) {
 function createWidget(opts) {
   const t = STRINGS[opts.locale];
   const host = document.createElement("div");
-  host.setAttribute("data-ui-feedback", "");
+  host.setAttribute("data-pointfix", "");
   host.style.cssText = `all:initial;position:fixed;inset:0;z-index:${opts.zIndex};pointer-events:none;`;
   host.style.setProperty("--ufb-accent", opts.accentColor);
   host.style.setProperty("--ufb-bottom", opts.bottomOffset);
@@ -1073,7 +1073,7 @@ function createWidget(opts) {
       state.shot = { canvas: shot.canvas, elements, labels };
       state.mode = "annotate";
     } catch (error) {
-      console.error("[ui-feedback]", error);
+      console.error("[pointfix]", error);
       toast(t.captureError);
       state.mode = "pick";
     }

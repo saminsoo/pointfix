@@ -1,6 +1,6 @@
 node_modules/
-.ui-feedback/
-.ui-feedback-inbox/
-demo/.ui-feedback/
+.pointfix/
+.pointfix-inbox/
+demo/.pointfix/
 .playwright-mcp/
 *.log

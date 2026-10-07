@@ -1,16 +1,16 @@
-# Reviewing UI feedback notes
+# Reviewing PointFix notes
 
 The owner isn't a developer. Notes are short, informal, sometimes misspelled, often in Spanish or another language. Your job is to understand what they meant, change exactly that, and tell them in plain words what you did.
 
 ## Reading a note
 
-`node scripts/ui-feedback.mjs pull` prints, per note:
+`node scripts/pointfix.mjs pull` prints, per note:
 
 ```
 ## 1. 3c10779c · open · for: desktop · 2026-10-07 15:26
 Page: /products/12 — "Product 12" · viewport 1536×730
 Comment: put these 3 in one row
-Screenshot: .ui-feedback-inbox/3c10779c.png
+Screenshot: .pointfix-inbox/3c10779c.png
 Elements:
   1. button «Add photos»
      selector: main > section > div.actions > button:nth-of-type(1)
@@ -48,7 +48,7 @@ These are hints, not rules: the screenshot and the picked elements decide.
 Leave it open and ask, instead of guessing:
 
 ```
-node scripts/ui-feedback.mjs reply <id> "Question: which button should be removed — the X on each photo or the one in the top bar? Pick it with the button and send a new note." --keep-open
+node scripts/pointfix.mjs reply <id> "Question: which button should be removed — the X on each photo or the one in the top bar? Pick it with the button and send a new note." --keep-open
 ```
 
 Typical unclear notes: no picked element and no marks; a comment that contradicts the screenshot; a change for screens that don't show the element. Two notes that conflict: do the newer one and say so in both replies.

@@ -1,21 +1,21 @@
 "use client";
-// components/ui-feedback-launcher.jsx (or .tsx) — render <UiFeedbackLauncher /> once, inside <body> of the
+// components/pointfix-launcher.jsx (or .tsx) — render <PointFixLauncher /> once, inside <body> of the
 // root layout. It asks the endpoint whether to show the feedback button (you in development, or a browser
 // that opened the activation link on a deployed site) and only then downloads the widget: customers never
 // load its code. Adjust the import path to where you copied the templates.
 import { useEffect } from "react";
 
-export default function UiFeedbackLauncher() {
+export default function PointFixLauncher() {
   useEffect(() => {
     /** @type {{ unmount: () => void } | null} */
     let handle = null;
     let cancelled = false;
-    fetch("/api/ui-feedback", { cache: "no-store" })
+    fetch("/api/pointfix", { cache: "no-store" })
       .then((res) => (res.ok ? res.json() : null))
       .then(async (body) => {
         if (!body?.visible || cancelled) return;
-        const { mountUiFeedback } = await import("@/lib/ui-feedback/ui-feedback-widget.js");
-        const mounted = await mountUiFeedback({
+        const { mountPointFix } = await import("@/lib/pointfix/pointfix-widget.js");
+        const mounted = await mountPointFix({
           checkVisibility: false,
           loadHtml2Canvas: () => import("html2canvas-pro"),
           // Next.js shows its dev tools indicator at the bottom left: keep the button on the other side.

@@ -1,28 +1,28 @@
 // @ts-check
 /**
- * ui-feedback — server side.
+ * pointfix — server side.
  *
  * One handler for the whole feature, written against the standard Web `Request` / `Response` API, so the
  * same file works in Next.js route handlers, Remix, Hono, Bun and Deno, and in Express / Vite / plain Node
  * through `toNodeMiddleware`. It has no dependencies and no Node-only imports (the file store lives in
- * `ui-feedback-file-store.js`).
+ * `pointfix-file-store.js`).
  *
  * Who can use it:
  *  - In development (NODE_ENV !== "production"): everyone who can reach your dev server — that's you.
- *  - On a deployed site: only browsers that opened the activation link `<endpoint>?enable=<UI_FEEDBACK_KEY>`
- *    (an HttpOnly cookie remembers it) and scripts that send `Authorization: Bearer <UI_FEEDBACK_KEY>`.
- *  - In production without UI_FEEDBACK_KEY the feature is off: every request answers 404.
+ *  - On a deployed site: only browsers that opened the activation link `<endpoint>?enable=<POINTFIX_KEY>`
+ *    (an HttpOnly cookie remembers it) and scripts that send `Authorization: Bearer <POINTFIX_KEY>`.
+ *  - In production without POINTFIX_KEY the feature is off: every request answers 404.
  *
- * Routes (all on the same endpoint, e.g. /api/ui-feedback):
+ * Routes (all on the same endpoint, e.g. /api/pointfix):
  *   GET                    → { visible }        the widget asks whether to show the button (never 404)
  *   GET  ?enable=<key>     → sets the cookie and redirects (to ?next=/path or "/")
  *   GET  ?disable          → removes the cookie
  *   GET  ?view[=open|resolved|all]   → HTML page to read notes, Claude's replies, resolve / reopen / delete
- *   GET  ?notes[=open|resolved|all]  → JSON list (used by scripts/ui-feedback.mjs)
+ *   GET  ?notes[=open|resolved|all]  → JSON list (used by scripts/pointfix.mjs)
  *   GET  ?image=<id>       → the annotated screenshot (PNG)
  *   POST (JSON)            → create a note (the widget)
  *   POST (form)            → viewer actions: resolve / reopen / delete
- *   PATCH ?id=<id> (JSON)  → { status?, reply? }  (scripts/ui-feedback.mjs reply|resolve|reopen)
+ *   PATCH ?id=<id> (JSON)  → { status?, reply? }  (scripts/pointfix.mjs reply|resolve|reopen)
  *   DELETE ?id=<id>
  */
 
@@ -63,7 +63,7 @@
  */
 
 /**
- * Where notes live. `createFileStore()` (files in `.ui-feedback/`) is the default; `createMemoryStore()` is for
+ * Where notes live. `createFileStore()` (files in `.pointfix/`) is the default; `createMemoryStore()` is for
  * tests. Write your own to keep notes in a database or object storage — it's six small functions.
  * @typedef {object} FeedbackStore
  * @property {(note: Note, png: Uint8Array | null) => Promise<void>} create
@@ -77,14 +77,14 @@
 /**
  * @typedef {object} HandlerOptions
  * @property {FeedbackStore} store
- * @property {string} [key]  Secret for the activation link and for scripts. Defaults to process.env.UI_FEEDBACK_KEY.
+ * @property {string} [key]  Secret for the activation link and for scripts. Defaults to process.env.POINTFIX_KEY.
  * @property {boolean} [allowInDevelopment]  Defaults to NODE_ENV !== "production".
  * @property {(request: Request) => boolean | Promise<boolean>} [isAllowed]  Extra check, e.g. "is an admin logged in".
  * @property {number} [maxImageBytes]  Default 8 MB.
  */
 
 export const DEVICES = /** @type {const} */ (["desktop", "tablet", "mobile"]);
-const COOKIE = "ui_feedback";
+const COOKIE = "pointfix";
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 30;
 const ID_PATTERN = /^[a-z0-9-]{4,64}$/;
 const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
@@ -249,12 +249,12 @@ function escapeHtml(s) {
 
 const VIEW_TEXT = {
   en: {
-    title: "UI feedback",
+    title: "PointFix",
     open: "Open",
     resolved: "Resolved",
     all: "All",
     empty: "No notes here.",
-    howTo: "Point out changes with the round button on your site, then ask Claude Code: “review the UI feedback”. Claude applies them and answers here.",
+    howTo: "Point out changes with the round button on your site, then ask Claude Code: “review the PointFix notes”. Claude applies them and answers here.",
     reply: "Claude's reply",
     elements: "Picked elements",
     resolve: "Mark as resolved",
@@ -269,7 +269,7 @@ const VIEW_TEXT = {
     badgeResolved: "Resolved",
   },
   es: {
-    title: "Observaciones de la interfaz",
+    title: "PointFix · Observaciones",
     open: "Abiertas",
     resolved: "Resueltas",
     all: "Todas",
@@ -377,14 +377,14 @@ ${cards || `<p>${escapeHtml(t.empty)}</p>`}
  * @param {HandlerOptions} options
  * @returns {(request: Request) => Promise<Response>}
  */
-export function createUiFeedbackHandler(options) {
+export function createPointFixHandler(options) {
   const store = options.store;
-  const key = options.key ?? env("UI_FEEDBACK_KEY") ?? "";
+  const key = options.key ?? env("POINTFIX_KEY") ?? "";
   const devAllowed = options.allowInDevelopment ?? env("NODE_ENV") !== "production";
   const maxImageBytes = options.maxImageBytes ?? 8 * 1024 * 1024;
   /** @type {Promise<string> | null} */
   let cookieValue = null;
-  const expectedCookie = () => (cookieValue ??= hmacHex(key, "ui-feedback-cookie-v1"));
+  const expectedCookie = () => (cookieValue ??= hmacHex(key, "pointfix-cookie-v1"));
 
   /** Can this request use the feature? */
   async function allowed(/** @type {Request} */ request) {
@@ -508,7 +508,7 @@ export function createUiFeedbackHandler(options) {
       return json({ error: "Method not allowed" }, 405);
     } catch (error) {
       if (error instanceof InputError) return json({ error: error.message }, 400);
-      console.error("[ui-feedback]", error);
+      console.error("[pointfix]", error);
       return json({ error: "Internal error" }, 500);
     }
   };
@@ -551,7 +551,7 @@ export function createMemoryStore() {
 
 /**
  * Adapts the handler to Node's `(req, res)` style: Express, Connect, Vite's dev server, `http.createServer`.
- * Mount it on the endpoint path, e.g. `app.use("/api/ui-feedback", toNodeMiddleware(handler))`.
+ * Mount it on the endpoint path, e.g. `app.use("/api/pointfix", toNodeMiddleware(handler))`.
  * @param {(request: Request) => Promise<Response>} handler
  */
 export function toNodeMiddleware(handler) {
@@ -559,7 +559,7 @@ export function toNodeMiddleware(handler) {
    * @param {any} req  Node IncomingMessage (Express / Connect add originalUrl).
    * @param {any} res  Node ServerResponse.
    */
-  return async function uiFeedbackMiddleware(req, res) {
+  return async function pointfixMiddleware(req, res) {
     const host = req.headers.host ?? "localhost";
     const proto = req.headers["x-forwarded-proto"] ?? (req.socket?.encrypted ? "https" : "http");
     const url = new URL(req.originalUrl ?? req.url ?? "/", `${proto}://${host}`);

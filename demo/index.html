@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>ui-feedback demo shop</title>
+    <title>PointFix demo shop</title>
     <style>
       * { box-sizing: border-box; }
       body { margin: 0; font: 16px/1.5 system-ui, sans-serif; color: #1c1917; background: #fafaf9; }
@@ -56,10 +56,10 @@
       const params = new URLSearchParams(location.search);
       const lang = params.get("lang");
       if (lang) document.documentElement.lang = lang;
-      const { mountUiFeedback } = await import("/ui-feedback-widget.js");
-      // In a real project with a bundler: mountUiFeedback({ loadHtml2Canvas: () => import("html2canvas-pro") })
+      const { mountPointFix } = await import("/pointfix-widget.js");
+      // In a real project with a bundler: mountPointFix({ loadHtml2Canvas: () => import("html2canvas-pro") })
       // ?tab=1 tries the exact tab capture (the browser asks for permission each time).
-      mountUiFeedback({ bottomOffset: "88px", tabCapture: params.get("tab") === "1" });
+      mountPointFix({ bottomOffset: "88px", tabCapture: params.get("tab") === "1" });
     </script>
   </body>
 </html>

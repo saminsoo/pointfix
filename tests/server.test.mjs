@@ -4,10 +4,10 @@ import http from "node:http";
 import { mkdtemp, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { createUiFeedbackHandler, createMemoryStore, toNodeMiddleware } from "../plugins/ui-feedback/skills/ui-feedback/templates/ui-feedback-server.js";
-import { createFileStore } from "../plugins/ui-feedback/skills/ui-feedback/templates/ui-feedback-file-store.js";
+import { createPointFixHandler, createMemoryStore, toNodeMiddleware } from "../plugins/pointfix/skills/pointfix/templates/pointfix-server.js";
+import { createFileStore } from "../plugins/pointfix/skills/pointfix/templates/pointfix-file-store.js";
 
-const ENDPOINT = "http://site.test/api/ui-feedback";
+const ENDPOINT = "http://site.test/api/pointfix";
 const PNG_1PX = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
 const KEY = "test-key-0123456789abcdefghijklmnop";
 
@@ -26,7 +26,7 @@ const req = (query = "", init = {}) => new Request(`${ENDPOINT}${query}`, init);
 const postJson = (body, headers = {}) => req("", { method: "POST", headers: { "Content-Type": "application/json", ...headers }, body: JSON.stringify(body) });
 
 describe("development mode (no key needed)", () => {
-  const handler = createUiFeedbackHandler({ store: createMemoryStore(), allowInDevelopment: true });
+  const handler = createPointFixHandler({ store: createMemoryStore(), allowInDevelopment: true });
 
   test("shows the button and accepts a note", async () => {
     assert.deepEqual(await (await handler(req())).json(), { visible: true });
@@ -83,7 +83,7 @@ describe("development mode (no key needed)", () => {
   });
 
   test("caps the image size", async () => {
-    const small = createUiFeedbackHandler({ store: createMemoryStore(), allowInDevelopment: true, maxImageBytes: 10 });
+    const small = createPointFixHandler({ store: createMemoryStore(), allowInDevelopment: true, maxImageBytes: 10 });
     const res = await small(postJson(note()));
     assert.equal(res.status, 400);
     assert.match((await res.json()).error, /too large/i);
@@ -92,7 +92,7 @@ describe("development mode (no key needed)", () => {
 
 describe("production", () => {
   test("without a key the feature is off", async () => {
-    const handler = createUiFeedbackHandler({ store: createMemoryStore(), allowInDevelopment: false, key: "" });
+    const handler = createPointFixHandler({ store: createMemoryStore(), allowInDevelopment: false, key: "" });
     assert.deepEqual(await (await handler(req())).json(), { visible: false });
     assert.equal((await handler(postJson(note()))).status, 404);
     assert.equal((await handler(req("?view"))).status, 404);
@@ -101,7 +101,7 @@ describe("production", () => {
   });
 
   test("the activation link sets a cookie that unlocks the button, and a wrong key does nothing", async () => {
-    const handler = createUiFeedbackHandler({ store: createMemoryStore(), allowInDevelopment: false, key: KEY });
+    const handler = createPointFixHandler({ store: createMemoryStore(), allowInDevelopment: false, key: KEY });
     assert.deepEqual(await (await handler(req())).json(), { visible: false });
     assert.equal((await handler(req("?enable=wrong-key"))).status, 404);
 
@@ -109,17 +109,17 @@ describe("production", () => {
     assert.equal(enable.status, 303);
     assert.equal(enable.headers.get("location"), "/shop");
     const cookie = enable.headers.get("set-cookie") ?? "";
-    assert.match(cookie, /^ui_feedback=[a-f0-9]{64}; Path=\/; HttpOnly; SameSite=Lax/);
+    assert.match(cookie, /^pointfix=[a-f0-9]{64}; Path=\/; HttpOnly; SameSite=Lax/);
     assert.ok(!cookie.includes(KEY), "the cookie must not contain the key itself");
 
     const value = cookie.split(";")[0];
     assert.deepEqual(await (await handler(req("", { headers: { cookie: value } }))).json(), { visible: true });
     assert.equal((await handler(postJson(note(), { cookie: value }))).status, 201);
-    assert.equal((await handler(postJson(note(), { cookie: "ui_feedback=forged" }))).status, 404);
+    assert.equal((await handler(postJson(note(), { cookie: "pointfix=forged" }))).status, 404);
   });
 
   test("the activation link never redirects to another site", async () => {
-    const handler = createUiFeedbackHandler({ store: createMemoryStore(), allowInDevelopment: false, key: KEY });
+    const handler = createPointFixHandler({ store: createMemoryStore(), allowInDevelopment: false, key: KEY });
     for (const next of ["//evil.example", "https://evil.example", "/\\evil.example"]) {
       const res = await handler(req(`?enable=${KEY}&next=${encodeURIComponent(next)}`));
       assert.equal(res.headers.get("location"), "/");
@@ -127,7 +127,7 @@ describe("production", () => {
   });
 
   test("scripts use the key as a Bearer token", async () => {
-    const handler = createUiFeedbackHandler({ store: createMemoryStore(), allowInDevelopment: false, key: KEY });
+    const handler = createPointFixHandler({ store: createMemoryStore(), allowInDevelopment: false, key: KEY });
     assert.equal((await handler(req("?notes", { headers: { authorization: "Bearer nope" } }))).status, 404);
     const ok = await handler(req("?notes", { headers: { authorization: `Bearer ${KEY}` } }));
     assert.equal(ok.status, 200);
@@ -135,7 +135,7 @@ describe("production", () => {
   });
 
   test("an extra isAllowed check (e.g. an admin session) also unlocks it", async () => {
-    const handler = createUiFeedbackHandler({ store: createMemoryStore(), allowInDevelopment: false, isAllowed: (r) => r.headers.get("x-admin") === "1" });
+    const handler = createPointFixHandler({ store: createMemoryStore(), allowInDevelopment: false, isAllowed: (r) => r.headers.get("x-admin") === "1" });
     assert.deepEqual(await (await handler(req("", { headers: { "x-admin": "1" } }))).json(), { visible: true });
     assert.deepEqual(await (await handler(req())).json(), { visible: false });
   });
@@ -146,14 +146,14 @@ describe("notes page forms", () => {
     req("", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded", ...(origin ? { origin } : {}) }, body: new URLSearchParams(fields).toString() });
 
   test("resolve, reopen and delete from the same site; other origins are refused", async () => {
-    const handler = createUiFeedbackHandler({ store: createMemoryStore(), allowInDevelopment: true });
+    const handler = createPointFixHandler({ store: createMemoryStore(), allowInDevelopment: true });
     const { id } = await (await handler(postJson(note()))).json();
     assert.equal((await handler(form({ action: "resolve", id }, "https://evil.example"))).status, 403);
     assert.equal((await handler(form({ action: "resolve", id }, "null"))).status, 403);
 
     const resolved = await handler(form({ action: "resolve", id, back: "all", lang: "es" }, "http://site.test"));
     assert.equal(resolved.status, 303);
-    assert.equal(resolved.headers.get("location"), "/api/ui-feedback?view=all&lang=es");
+    assert.equal(resolved.headers.get("location"), "/api/pointfix?view=all&lang=es");
     assert.equal((await (await handler(req("?notes=resolved"))).json()).notes.length, 1);
 
     await handler(form({ action: "reopen", id }, "http://site.test"));
@@ -169,7 +169,7 @@ describe("file store", () => {
   test("keeps notes and screenshots as files", async () => {
     const dir = await mkdtemp(path.join(os.tmpdir(), "ufb-"));
     try {
-      const handler = createUiFeedbackHandler({ store: createFileStore({ dir }), allowInDevelopment: true });
+      const handler = createPointFixHandler({ store: createFileStore({ dir }), allowInDevelopment: true });
       const { id } = await (await handler(postJson(note()))).json();
       const fresh = createFileStore({ dir }); // a new instance reads what the other wrote
       assert.equal((await fresh.get(id))?.comment, "Make the total bigger");
@@ -189,11 +189,11 @@ describe("file store", () => {
 
 describe("Node adapter", () => {
   test("works behind http.createServer, including cookies and redirects", async () => {
-    const handler = createUiFeedbackHandler({ store: createMemoryStore(), allowInDevelopment: false, key: KEY });
+    const handler = createPointFixHandler({ store: createMemoryStore(), allowInDevelopment: false, key: KEY });
     const middleware = toNodeMiddleware(handler);
     const server = http.createServer((rq, rs) => void middleware(rq, rs));
     await new Promise((resolve) => server.listen(0, resolve));
-    const base = `http://127.0.0.1:${server.address().port}/api/ui-feedback`;
+    const base = `http://127.0.0.1:${server.address().port}/api/pointfix`;
     try {
       const enable = await fetch(`${base}?enable=${KEY}`, { redirect: "manual" });
       assert.equal(enable.status, 303);

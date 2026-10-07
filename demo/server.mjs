@@ -1,20 +1,20 @@
-// Try ui-feedback in one minute, with no project: `npm run demo`, then open http://localhost:4321
-// (add ?lang=es for Spanish). Notes are saved in demo/.ui-feedback/. Then, in another terminal:
-//   node plugins/ui-feedback/skills/ui-feedback/scripts/ui-feedback.mjs pull --dir demo/.ui-feedback
+// Try pointfix in one minute, with no project: `npm run demo`, then open http://localhost:4321
+// (add ?lang=es for Spanish). Notes are saved in demo/.pointfix/. Then, in another terminal:
+//   node plugins/pointfix/skills/pointfix/scripts/pointfix.mjs pull --dir demo/.pointfix
 import http from "node:http";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { createUiFeedbackHandler, toNodeMiddleware } from "../plugins/ui-feedback/skills/ui-feedback/templates/ui-feedback-server.js";
-import { createFileStore } from "../plugins/ui-feedback/skills/ui-feedback/templates/ui-feedback-file-store.js";
+import { createPointFixHandler, toNodeMiddleware } from "../plugins/pointfix/skills/pointfix/templates/pointfix-server.js";
+import { createFileStore } from "../plugins/pointfix/skills/pointfix/templates/pointfix-file-store.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const templates = path.join(here, "../plugins/ui-feedback/skills/ui-feedback/templates");
+const templates = path.join(here, "../plugins/pointfix/skills/pointfix/templates");
 const port = Number(process.env.PORT ?? 4321);
 
 const feedback = toNodeMiddleware(
-  createUiFeedbackHandler({
-    store: createFileStore({ dir: process.env.UI_FEEDBACK_DIR ?? path.join(here, ".ui-feedback") }),
+  createPointFixHandler({
+    store: createFileStore({ dir: process.env.POINTFIX_DIR ?? path.join(here, ".pointfix") }),
     allowInDevelopment: process.env.DEMO_PRODUCTION !== "1",
   })
 );
@@ -31,10 +31,10 @@ function photo(/** @type {number} */ seed) {
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url ?? "/", `http://${req.headers.host}`);
   try {
-    if (url.pathname === "/api/ui-feedback") return void (await feedback(req, res));
-    if (url.pathname === "/ui-feedback-widget.js") {
+    if (url.pathname === "/api/pointfix") return void (await feedback(req, res));
+    if (url.pathname === "/pointfix-widget.js") {
       res.setHeader("Content-Type", "text/javascript; charset=utf-8");
-      return void res.end(await readFile(path.join(templates, "ui-feedback-widget.js")));
+      return void res.end(await readFile(path.join(templates, "pointfix-widget.js")));
     }
     const m = /^\/photo-(\d)\.svg$/.exec(url.pathname);
     if (m) {
@@ -54,4 +54,4 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(port, () => console.log(`ui-feedback demo: http://localhost:${port}  (Spanish: http://localhost:${port}/?lang=es)`));
+server.listen(port, () => console.log(`pointfix demo: http://localhost:${port}  (Spanish: http://localhost:${port}/?lang=es)`));

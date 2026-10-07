@@ -1,4 +1,4 @@
-# Installing ui-feedback
+# Installing pointfix
 
 Contents: [What goes where](#what-goes-where) · [Next.js (App Router)](#nextjs-app-router) · [Next.js (Pages Router)](#nextjs-pages-router) · [Vite / SPA in development](#vite--spa-in-development) · [Express or any Node server](#express-or-any-node-server) · [SvelteKit](#sveltekit) · [Nuxt 3](#nuxt-3) · [Remix / React Router 7](#remix--react-router-7) · [Astro](#astro) · [Plain HTML](#plain-html) · [Deployed sites](#deployed-sites) · [Serverless and custom stores](#serverless-and-custom-stores) · [Letting your own admins in](#letting-your-own-admins-in) · [Widget options](#widget-options) · [Content-Security-Policy](#content-security-policy) · [Uninstall](#uninstall)
 
@@ -6,46 +6,46 @@ Contents: [What goes where](#what-goes-where) · [Next.js (App Router)](#nextjs-
 
 Every stack needs the same three things:
 
-1. **The endpoint** — `createUiFeedbackHandler({ store })` from `ui-feedback-server.js`, served at one path (default `/api/ui-feedback`) for GET, POST, PATCH and DELETE. It takes a standard `Request` and returns a `Response`; `toNodeMiddleware(handler)` adapts it to `(req, res)` servers.
-2. **A store** — `createFileStore()` from `ui-feedback-file-store.js` (files in `.ui-feedback/`), or your own (see [custom stores](#serverless-and-custom-stores)).
-3. **The widget** — `mountUiFeedback(options)` from `ui-feedback-widget.js`, called once in the browser. It asks the endpoint whether to show the button.
+1. **The endpoint** — `createPointFixHandler({ store })` from `pointfix-server.js`, served at one path (default `/api/pointfix`) for GET, POST, PATCH and DELETE. It takes a standard `Request` and returns a `Response`; `toNodeMiddleware(handler)` adapts it to `(req, res)` servers.
+2. **A store** — `createFileStore()` from `pointfix-file-store.js` (files in `.pointfix/`), or your own (see [custom stores](#serverless-and-custom-stores)).
+3. **The widget** — `mountPointFix(options)` from `pointfix-widget.js`, called once in the browser. It asks the endpoint whether to show the button.
 
-Copy the templates into one folder (e.g. `lib/ui-feedback/` or `src/lib/ui-feedback/`), install `html2canvas-pro`, add `.ui-feedback/` and `.ui-feedback-inbox/` to `.gitignore`, and copy `scripts/ui-feedback.mjs` to the project's `scripts/`.
+Copy the templates into one folder (e.g. `lib/pointfix/` or `src/lib/pointfix/`), install `html2canvas-pro`, add `.pointfix/` and `.pointfix-inbox/` to `.gitignore`, and copy `scripts/pointfix.mjs` to the project's `scripts/`.
 
-If the widget is mounted on a different path than `/api/ui-feedback`, pass the same path to the widget as `endpoint` and use it in `UI_FEEDBACK_URL`.
+If the widget is mounted on a different path than `/api/pointfix`, pass the same path to the widget as `endpoint` and use it in `POINTFIX_URL`.
 
 ## Next.js (App Router)
 
-1. Copy `templates/nextjs/route.js` to `app/api/ui-feedback/route.js` (`route.ts` in TypeScript projects — the content works as is). Fix the import paths (`@/lib/ui-feedback/...`).
-2. Copy `templates/nextjs/ui-feedback-launcher.jsx` to `components/ui-feedback-launcher.jsx` (`.tsx` in TS projects; the `/** @type */` comment can become a type annotation).
+1. Copy `templates/nextjs/route.js` to `app/api/pointfix/route.js` (`route.ts` in TypeScript projects — the content works as is). Fix the import paths (`@/lib/pointfix/...`).
+2. Copy `templates/nextjs/pointfix-launcher.jsx` to `components/pointfix-launcher.jsx` (`.tsx` in TS projects; the `/** @type */` comment can become a type annotation).
 3. Render it once in `app/layout.(tsx|jsx)`, inside `<body>`:
 
    ```tsx
-   import UiFeedbackLauncher from "@/components/ui-feedback-launcher";
+   import PointFixLauncher from "@/components/pointfix-launcher";
    // ...
    <body>
      {children}
-     <UiFeedbackLauncher />
+     <PointFixLauncher />
    </body>
    ```
 
    It's a client component that renders nothing until the endpoint says the button is visible, so it doesn't change the layout's caching or rendering.
 4. `npm install html2canvas-pro` (or pnpm / yarn / bun, following the lockfile).
-5. If the project has a `middleware.ts` / `proxy.ts` that requires login for `/api/*`, let `/api/ui-feedback` through — the handler does its own access control.
+5. If the project has a `middleware.ts` / `proxy.ts` that requires login for `/api/*`, let `/api/pointfix` through — the handler does its own access control.
 6. Check: `npm run dev`, open any page, the round button is at the bottom right (the launcher puts it there because Next.js shows its dev tools indicator at the bottom left).
 
 Next.js versions differ (route segment config, `proxy.ts` replacing `middleware.ts` in 16): if the project has docs in `node_modules/next/dist/docs/`, follow them over this file.
 
 ## Next.js (Pages Router)
 
-`pages/api/ui-feedback.js`:
+`pages/api/pointfix.js`:
 
 ```js
-import { createUiFeedbackHandler, toNodeMiddleware } from "@/lib/ui-feedback/ui-feedback-server.js";
-import { createFileStore } from "@/lib/ui-feedback/ui-feedback-file-store.js";
+import { createPointFixHandler, toNodeMiddleware } from "@/lib/pointfix/pointfix-server.js";
+import { createFileStore } from "@/lib/pointfix/pointfix-file-store.js";
 
 export const config = { api: { bodyParser: false } }; // the handler reads the raw body itself
-export default toNodeMiddleware(createUiFeedbackHandler({ store: createFileStore() }));
+export default toNodeMiddleware(createPointFixHandler({ store: createFileStore() }));
 ```
 
 Mount the launcher (same component as the App Router, without `"use client"`) in `pages/_app.js`.
@@ -56,17 +56,17 @@ For a React / Vue / Svelte SPA without its own server, serve the endpoint from V
 
 ```js
 // vite.config.js
-import { createUiFeedbackHandler, toNodeMiddleware } from "./src/lib/ui-feedback/ui-feedback-server.js";
-import { createFileStore } from "./src/lib/ui-feedback/ui-feedback-file-store.js";
+import { createPointFixHandler, toNodeMiddleware } from "./src/lib/pointfix/pointfix-server.js";
+import { createFileStore } from "./src/lib/pointfix/pointfix-file-store.js";
 
 export default defineConfig({
   plugins: [
     // ...your plugins
     {
-      name: "ui-feedback",
+      name: "pointfix",
       apply: "serve",
       configureServer(server) {
-        server.middlewares.use("/api/ui-feedback", toNodeMiddleware(createUiFeedbackHandler({ store: createFileStore() })));
+        server.middlewares.use("/api/pointfix", toNodeMiddleware(createPointFixHandler({ store: createFileStore() })));
       },
     },
   ],
@@ -77,8 +77,8 @@ In the app's entry (`main.tsx`, `main.js`):
 
 ```js
 if (import.meta.env.DEV) {
-  import("./lib/ui-feedback/ui-feedback-widget.js").then(({ mountUiFeedback }) =>
-    mountUiFeedback({ loadHtml2Canvas: () => import("html2canvas-pro") })
+  import("./lib/pointfix/pointfix-widget.js").then(({ mountPointFix }) =>
+    mountPointFix({ loadHtml2Canvas: () => import("html2canvas-pro") })
   );
 }
 ```
@@ -88,24 +88,24 @@ For a deployed SPA, the endpoint has to live on a real backend (see Express) and
 ## Express or any Node server
 
 ```js
-import { createUiFeedbackHandler, toNodeMiddleware } from "./lib/ui-feedback/ui-feedback-server.js";
-import { createFileStore } from "./lib/ui-feedback/ui-feedback-file-store.js";
+import { createPointFixHandler, toNodeMiddleware } from "./lib/pointfix/pointfix-server.js";
+import { createFileStore } from "./lib/pointfix/pointfix-file-store.js";
 
 // Before express.json() / body parsers: the handler reads the raw body.
-app.use("/api/ui-feedback", toNodeMiddleware(createUiFeedbackHandler({ store: createFileStore() })));
+app.use("/api/pointfix", toNodeMiddleware(createPointFixHandler({ store: createFileStore() })));
 ```
 
-Plain `http.createServer`: call the middleware when `req.url` starts with `/api/ui-feedback` (see `demo/server.mjs` in the repository). Mount the widget in the pages the server renders (see [Plain HTML](#plain-html)).
+Plain `http.createServer`: call the middleware when `req.url` starts with `/api/pointfix` (see `demo/server.mjs` in the repository). Mount the widget in the pages the server renders (see [Plain HTML](#plain-html)).
 
 ## SvelteKit
 
-`src/routes/api/ui-feedback/+server.js`:
+`src/routes/api/pointfix/+server.js`:
 
 ```js
-import { createUiFeedbackHandler } from "$lib/ui-feedback/ui-feedback-server.js";
-import { createFileStore } from "$lib/ui-feedback/ui-feedback-file-store.js";
+import { createPointFixHandler } from "$lib/pointfix/pointfix-server.js";
+import { createFileStore } from "$lib/pointfix/pointfix-file-store.js";
 
-const handler = createUiFeedbackHandler({ store: createFileStore() });
+const handler = createPointFixHandler({ store: createFileStore() });
 export const GET = ({ request }) => handler(request);
 export const POST = ({ request }) => handler(request);
 export const PATCH = ({ request }) => handler(request);
@@ -116,24 +116,24 @@ Mount the widget from the root `+layout.svelte` in `onMount` (dynamic `import()`
 
 ## Nuxt 3
 
-`server/api/ui-feedback.ts`:
+`server/api/pointfix.ts`:
 
 ```ts
-import { createUiFeedbackHandler } from "~/lib/ui-feedback/ui-feedback-server.js";
-import { createFileStore } from "~/lib/ui-feedback/ui-feedback-file-store.js";
+import { createPointFixHandler } from "~/lib/pointfix/pointfix-server.js";
+import { createFileStore } from "~/lib/pointfix/pointfix-file-store.js";
 
-const handler = createUiFeedbackHandler({ store: createFileStore() });
+const handler = createPointFixHandler({ store: createFileStore() });
 export default defineEventHandler((event) => handler(toWebRequest(event)));
 ```
 
-Mount the widget in a client-only plugin: `plugins/ui-feedback.client.ts` with the dynamic import.
+Mount the widget in a client-only plugin: `plugins/pointfix.client.ts` with the dynamic import.
 
 ## Remix / React Router 7
 
-`app/routes/api.ui-feedback.ts`:
+`app/routes/api.pointfix.ts`:
 
 ```ts
-const handler = createUiFeedbackHandler({ store: createFileStore() });
+const handler = createPointFixHandler({ store: createFileStore() });
 export const loader = ({ request }) => handler(request);
 export const action = ({ request }) => handler(request);
 ```
@@ -142,10 +142,10 @@ Mount the widget in `root.tsx` with a `useEffect` like the Next.js launcher.
 
 ## Astro
 
-`src/pages/api/ui-feedback.ts` (needs an SSR adapter, `export const prerender = false`):
+`src/pages/api/pointfix.ts` (needs an SSR adapter, `export const prerender = false`):
 
 ```ts
-const handler = createUiFeedbackHandler({ store: createFileStore() });
+const handler = createPointFixHandler({ store: createFileStore() });
 export const prerender = false;
 export const GET = ({ request }) => handler(request);
 export const POST = GET; export const PATCH = GET; export const DELETE = GET;
@@ -159,26 +159,26 @@ Any page served by a server that has the endpoint:
 
 ```html
 <script type="module">
-  import { mountUiFeedback } from "/ui-feedback-widget.js";
-  mountUiFeedback(); // html2canvas-pro comes from a CDN unless you pass loadHtml2Canvas
+  import { mountPointFix } from "/pointfix-widget.js";
+  mountPointFix(); // html2canvas-pro comes from a CDN unless you pass loadHtml2Canvas
 </script>
 ```
 
 ## Deployed sites
 
-On a deployed site (`NODE_ENV=production`) the endpoint is off until `UI_FEEDBACK_KEY` is set on the server.
+On a deployed site (`NODE_ENV=production`) the endpoint is off until `POINTFIX_KEY` is set on the server.
 
-1. `node scripts/ui-feedback.mjs key` → a random secret.
-2. Put it in the server's environment as `UI_FEEDBACK_KEY` (hosting dashboard, `.env` on a VPS, Docker env). Redeploy/restart.
-3. The owner opens `https://<site>/api/ui-feedback?enable=<key>` once in each browser they use. An HttpOnly cookie remembers it for 30 days (`?disable` removes it). Optional `&next=/some/page` to land there.
-4. For the CLI, in the owner's local project: `.env.local` with `UI_FEEDBACK_URL=https://<site>/api/ui-feedback` and `UI_FEEDBACK_KEY=<key>`. Make sure `.env.local` is git-ignored.
+1. `node scripts/pointfix.mjs key` → a random secret.
+2. Put it in the server's environment as `POINTFIX_KEY` (hosting dashboard, `.env` on a VPS, Docker env). Redeploy/restart.
+3. The owner opens `https://<site>/api/pointfix?enable=<key>` once in each browser they use. An HttpOnly cookie remembers it for 30 days (`?disable` removes it). Optional `&next=/some/page` to land there.
+4. For the CLI, in the owner's local project: `.env.local` with `POINTFIX_URL=https://<site>/api/pointfix` and `POINTFIX_KEY=<key>`. Make sure `.env.local` is git-ignored.
 5. Changing the key logs every browser out.
 
-The file store needs a disk that survives deploys: a VPS or a Docker volume mounted on `.ui-feedback/` (or set `UI_FEEDBACK_DIR`). If every deploy wipes the disk, notes are lost — use a custom store.
+The file store needs a disk that survives deploys: a VPS or a Docker volume mounted on `.pointfix/` (or set `POINTFIX_DIR`). If every deploy wipes the disk, notes are lost — use a custom store.
 
 ## Serverless and custom stores
 
-On Vercel, Netlify, Cloudflare and similar, the disk is temporary: write a store for the project's database or object storage. A store is six async functions (see `FeedbackStore` in `ui-feedback-server.js`):
+On Vercel, Netlify, Cloudflare and similar, the disk is temporary: write a store for the project's database or object storage. A store is six async functions (see `FeedbackStore` in `pointfix-server.js`):
 
 ```js
 const store = {
@@ -198,7 +198,7 @@ A simple version: one table with an `id` primary key and a JSON column for the n
 If the site already has staff logins, let them use the button without the activation link:
 
 ```js
-createUiFeedbackHandler({
+createPointFixHandler({
   store,
   isAllowed: async (request) => Boolean(await getAdminFromRequest(request)), // your auth
 });
@@ -208,11 +208,11 @@ createUiFeedbackHandler({
 
 ## Widget options
 
-`mountUiFeedback(options)`:
+`mountPointFix(options)`:
 
 | Option | Default | What it does |
 |---|---|---|
-| `endpoint` | `"/api/ui-feedback"` | Where the endpoint is. |
+| `endpoint` | `"/api/pointfix"` | Where the endpoint is. |
 | `loadHtml2Canvas` | a CDN | `() => import("html2canvas-pro")` — use the installed package. |
 | `breakpoints` | `{ tablet: 768, desktop: 1024 }` | Widths where tablet and desktop start; decides which screen comes selected. |
 | `locale` | `<html lang>` / browser | `"en"` or `"es"`. |
@@ -232,4 +232,4 @@ createUiFeedbackHandler({
 
 ## Uninstall
 
-Remove the launcher from the layout, the endpoint route, the copied templates, `html2canvas-pro` and the `.gitignore` lines; delete `.ui-feedback/`. To only switch it off on a deployed site, remove `UI_FEEDBACK_KEY` from the server's environment.
+Remove the launcher from the layout, the endpoint route, the copied templates, `html2canvas-pro` and the `.gitignore` lines; delete `.pointfix/`. To only switch it off on a deployed site, remove `POINTFIX_KEY` from the server's environment.
