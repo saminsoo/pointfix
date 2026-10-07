@@ -1,0 +1,15 @@
+{
+  "name": "saminsoo",
+  "description": "Plugins by saminsoo",
+  "owner": {
+    "name": "saminsoo",
+    "url": "https://github.com/saminsoo"
+  },
+  "plugins": [
+    {
+      "name": "ui-feedback",
+      "source": "./plugins/ui-feedback",
+      "description": "Point at things on your site, say what to change; Claude applies it and answers on each note."
+    }
+  ]
+}
