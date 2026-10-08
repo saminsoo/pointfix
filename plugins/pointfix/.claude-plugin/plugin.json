@@ -1,7 +1,7 @@
 {
   "name": "pointfix",
   "displayName": "PointFix",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Point-and-click visual feedback for web projects: pick elements layer by layer, capture and mark the screen, choose desktop/tablet/mobile, comment — then Claude reviews the notes, changes the code and replies on each one.",
   "author": {
     "name": "saminsoo",

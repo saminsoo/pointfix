@@ -911,7 +911,6 @@ function createWidget(opts) {
     frame = requestAnimationFrame(() => {
       state.hover = layersAt(e.clientX, e.clientY)[0] ?? null;
       renderBoxes();
-      placeToolbar();
     });
   });
   overlay.addEventListener("click", (event) => {
@@ -942,10 +941,14 @@ function createWidget(opts) {
   /** @type {HTMLElement | null} */
   let toolbarEl = null;
 
-  /** The window never covers what you're looking at: if the element is under it, it jumps to the other edge. */
+  /**
+   * The window never covers the element you clicked: if it is under it, it jumps to the other edge. Only the
+   * clicked element counts, not the one under the mouse: otherwise the window ran away from the mouse on its way
+   * to the window's own buttons.
+   */
   function placeToolbar() {
     if (!toolbarEl) return;
-    const target = state.focus?.el ?? state.hover;
+    const target = state.focus?.el ?? null;
     let side = state.dock;
     if (target) {
       const r = target.getBoundingClientRect();
